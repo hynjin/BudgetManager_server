@@ -1,0 +1,50 @@
+"use server";
+
+import connectToDatabase from "../util/connect";
+import { NextResponse } from "next/server";
+import { NextApiRequest, NextApiResponse } from "next";
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+
+  const [year, month] = searchParams.get("date")?.split("-").map(Number) ?? [];
+  if (!year || !month) {
+    return NextResponse.json(
+      { error: "Please provide year and month" },
+      { status: 400 }
+    );
+  }
+
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0);
+
+  console.log(startDate, endDate);
+  const client = await connectToDatabase();
+  const db = client.db("Dev");
+  const collection = db.collection("transactions");
+
+  try {
+    const data = await collection
+      .find({
+        updatedAt: {
+          $gte: startDate,
+          $lt: endDate,
+        },
+      })
+      .toArray();
+
+    return NextResponse.json({ message: data });
+  } catch (err) {
+    return NextResponse.json({ error: "Server Error" }, { status: 500 });
+  }
+}
+
+export async function HEAD(request: Request) {}
+
+export async function POST(request: Request) {}
+
+export async function PUT(request: Request) {}
+
+export async function DELETE(request: Request) {}
+
+export async function PATCH(request: Request) {}
