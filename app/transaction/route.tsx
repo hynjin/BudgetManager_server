@@ -2,7 +2,6 @@
 
 import connectToDatabase from "../util/connect";
 import { NextResponse } from "next/server";
-import { NextApiRequest, NextApiResponse } from "next";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -16,14 +15,13 @@ export async function GET(request: Request) {
   }
 
   const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 0);
-
-  console.log(startDate, endDate);
-  const client = await connectToDatabase();
-  const db = client.db("Dev");
-  const collection = db.collection("transactions");
+  const endDate = new Date(year, month, 1);
 
   try {
+    const client = await connectToDatabase();
+    const db = client.db("Dev");
+    const collection = db.collection("transactions");
+
     const data = await collection
       .find({
         updatedAt: {
@@ -39,12 +37,30 @@ export async function GET(request: Request) {
   }
 }
 
-export async function HEAD(request: Request) {}
-
 export async function POST(request: Request) {}
 
 export async function PUT(request: Request) {}
 
-export async function DELETE(request: Request) {}
+export async function DELETE(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
 
-export async function PATCH(request: Request) {}
+  if (!id) {
+    return NextResponse.json({ error: "Please provide id" }, { status: 400 });
+  }
+
+  try {
+    const client = await connectToDatabase();
+    const db = client.db("Dev");
+    const collection = db.collection("transactions");
+
+    const result = await collection.deleteOne({ _id: id });
+
+    return NextResponse.json({
+      message: "Documents deleted",
+      count: result.deletedCount,
+    });
+  } catch (err) {
+    return NextResponse.json({ error: "Server Error" }, { status: 500 });
+  }
+}
